@@ -1,7 +1,6 @@
 # TRAVILLO
 
-Travillo is a blockchain marketplace that allow people can book and add places to visit/travel to.
-Live demo [HERE](https://marktorder.github.io/travillo/).
+Travillo is a celo/cUSD based Dapp that allow people to book and add places to visit/travel to. Live demo [HERE](https://marktorder.github.io/travillo/).
 
 # Install
 
