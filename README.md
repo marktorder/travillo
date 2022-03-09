@@ -1,6 +1,6 @@
 # TRAVILLO
 
-Clothly is a blockchain marketplace that allow people can book and add places to visit/travel to.
+Travillo is a blockchain marketplace that allow people can book and add places to visit/travel to.
 Live demo [HERE](https://marktorder.github.io/travillo/).
 
 # Install
