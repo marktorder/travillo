@@ -9,7 +9,8 @@ import {contractAddress, ERC20_DECIMALS, cUSDContractAddress} from "./utils/cons
 // setting global var, let, const
 
 let kit // the kit
-let cart = [] // cart object to contain the cart place array (array of object)
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [] // get cart from local storage or instantiate as empty array
 let cartTotal = 1 // init cartTotal state
 let contract // the contract
 let places = [] // places object to contain the places place array (array of object)
@@ -65,6 +66,8 @@ const getBalance = async function () {
 // get places
 const getPlaces = async function () {
     const placesLength = await contract.methods.getPlacesLength().call()
+    notification(`Fetching Places !!!`)
+
     const _places = []
     for (let i = 0; i < placesLength; i++) {
         let _place = new Promise(async (resolve) => {
@@ -226,20 +229,29 @@ function isEmptyObject(obj) {
 document.querySelector("#places").addEventListener("click", (e) => {
     if (e.target.className.includes("add-to-cart")) {
         const index = e.target.id
+
+        console.log(e.target.id,'index')
         const _place = places[index]
         let isInCart = false // is item in cart?
 
-        // check if item is already in cart
-        if (cart.length > 0) {
-            cart.forEach(item => {
-                isInCart = item.index === _place.index;
-            })
-        }
+     
+
+        
+        // check if item is in cart
+        cart.forEach((item) => {
+            console.log(item.index === parseInt(index))
+            if (item.index === parseInt(index)) {
+                isInCart = true
+            }
+        })
 
         if (isInCart) {
             notification(`${_place.name} already in CART!`)
         } else {
             // push to cart object
+
+
+
             cart.push({
                 owner: _place.owner,
                 image: _place.image,
@@ -250,15 +262,18 @@ document.querySelector("#places").addEventListener("click", (e) => {
                 index: _place.index,
             })
 
-            // get total sum before and after
-            let oldSum = document.getElementById("totalSum").textContent
-            let newSum = parseFloat(oldSum) + parseFloat(_place.price.shiftedBy(-ERC20_DECIMALS).toFixed(2))
-            document.getElementById("totalSum").textContent = newSum
+       
+
+
 
             notification(`${_place.name} has been added to CART!`)
 
             // clear out
             document.getElementById("emptyCart").textContent = ""
+
+            // add cart to local storage
+            localStorage.setItem("cart", JSON.stringify(cart))
+
             renderCart();
             // getting cart total items
             document.querySelector("#cartTotal").textContent = cartTotal++
@@ -294,8 +309,7 @@ document.querySelector("#bookCart").addEventListener("click", async (e) => {
                 document.getElementById("totalSum").textContent = 0
                 document.getElementById("balance").textContent = 0
                 document.querySelector("#cartTotal").textContent = 0
-                cart = []
-                cart.length = 0
+                localStorage.setItem("cart", JSON.stringify([]))
                 await contract.methods.clearCartAddress() // clear contract addresses
                 cartTotal = 1 // reset cart total to 1
                 document.getElementById("emptyCart").textContent = "Transaction completed, cart is empty!"
@@ -314,7 +328,14 @@ document.querySelector("#bookCart").addEventListener("click", async (e) => {
 // render cart list
 function renderCart() {
     document.getElementById("cart").innerHTML = ""
+
+   
+   
     cart.forEach((cartItem) => {
+        // make  big number for price
+        let price = new BigNumber(cartItem.price)
+        cartItem.price = price;
+        
         const newDiv = document.createElement("div")
         const footerDiv = document.createElement("div")
         newDiv.className = "mb-3 d-flex"
@@ -322,6 +343,19 @@ function renderCart() {
         document.getElementById("cart").appendChild(newDiv)
         document.getElementById("cart").appendChild(footerDiv)
     })
+
+    // get total price of cart
+    let totalSum = 0
+    cart.forEach((item) => {
+        // bigNumber
+        let price = new BigNumber(item.price)
+        totalSum += price.shiftedBy(-ERC20_DECIMALS).toNumber()
+    })
+
+    document.getElementById("totalSum").textContent = parseFloat(totalSum);
+
+    // get total number of items
+     document.querySelector("#cartTotal").textContent = cart.length;
 }
 
 // cart template
@@ -346,6 +380,7 @@ window.addEventListener("load", async () => {
     await getBalance()
     await getPlaces()
     renderPlaces()
+    renderCart()
     notificationOff()
     // empty cart notice
     if (cart.length <= 0) {
