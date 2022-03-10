@@ -20,9 +20,11 @@ contract Travillo {
 
     // Address of the cusd token
     address internal cUsdTokenAddress = 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1;
-    address[] public cartAddresses;
-    address[] empty;
+    uint[] public cartIndex;
 
+    //Events that will emit when a new place is added or if a user books a place
+    event newPlace(address indexed owner, string name);
+    event placeBooked(address indexed seller, uint price, address indexed buyer);
 
     // structure for each Cloth
     struct Place {
@@ -60,9 +62,11 @@ contract Travillo {
             _price
         );
         placesLength++;
+        emit newPlace(msg.sender, _name);
     }
 
-    // fetch a places
+    // fetch places
+    
     function getPlaces(uint _index) public view returns (
         address payable,
         string memory,
@@ -93,25 +97,68 @@ contract Travillo {
         );
         // save the transaction to the history mapping
         history[msg.sender].push(_index);
+
+        emit placeBooked( places[_index].owner, places[_index].price, msg.sender);
     }
 
-    // add item address to card
-    function addCartAddress(address sellerAdd) public returns (address[] memory){
-        cartAddresses.push(sellerAdd);
-        return (cartAddresses);
+    // add item to cart
+    function addCartAddress(uint index) public returns (uint[] memory){
+        cartIndex.push(index);
+        return (cartIndex);
     }
 
-    // clear all cart addresses
-    function clearCartAddress() public returns (uint256){
-        cartAddresses = empty;
-        return (cartAddresses.length);
+    // clear all the cart
+    function clearCart() public{
+        delete cartIndex;
     }
 
-    // book cart items
-    function bookCart(uint totalSumPrice) public payable {
-        for (uint i = 0; i < cartAddresses.length; i++) {
-            payable(cartAddresses[i]).transfer(totalSumPrice);
+    /*  This function is used to buy all the items in the cart using the following approach:
+        User transfers the total money to the contract and the contract iterates through the owners and 
+        send them their money
+    */
+    function bookCartV1(uint totalSumPrice) public payable {
+        require(
+            IERC20Token(cUsdTokenAddress).transferFrom(
+                msg.sender,
+                address(this),
+                totalSumPrice
+            ),
+            "Transfer failed."
+        );
+        for (uint i = 0; i < cartIndex.length; i++) {
+            uint index = cartIndex[i];
+        require(
+            IERC20Token(cUsdTokenAddress).transferFrom(
+                address(this),
+                places[index].owner,
+                places[index].price
+            ),
+            "Transfer failed."
+        );
         }
+    }
+
+/* An alternative to the above function where this ask the user directly to send the money
+    one by one to the owners, I doesn't bring in the risk of the contract holding some assests
+    but, the user would need to allow and confirm all the transactions one by one */
+
+    function bookCartV2() public payable{
+        for (uint i = 0; i < cartIndex.length; i++) {
+            uint index = cartIndex[i];
+            require(
+             IERC20Token(cUsdTokenAddress).transferFrom(
+                 address(this),
+                  places[index].owner,
+                 places[index].price
+                ),
+                "Transfer failed."
+            );
+        }
+    }
+
+    //Function which the user can call to get his purchase history
+    function getHistory() public view returns(uint[] memory){
+            return(history[msg.sender]);
     }
 
     // get lenght of place array
